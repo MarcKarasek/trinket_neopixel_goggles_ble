@@ -30,6 +30,8 @@
 #define NUM_LEDS 32 // Two 16-LED NeoPixel rings
 #define FPS      30 // Animation frames/second (ish)
 
+#define SWITCH 4
+
 SoftwareSerial    ser(RX_PIN, -1);
 Adafruit_NeoPixel pixels(NUM_LEDS, LED_PIN);
 
@@ -41,6 +43,14 @@ void setup() {
   // Stop incoming data & init software serial
   pinMode(CTS_PIN, OUTPUT); digitalWrite(CTS_PIN, HIGH);
   ser.begin(9600);
+
+  // Setup Digital#4 as input with pull down.
+  // this uses the battery +V as input to the switch 
+  // and a SPST OFF (ON) switch so the USB interface is
+  // not impacted.
+  pinMode(SWITCH, INPUT);
+  // With pulldown
+  digitalWrite(SWITCH, LOW);
 
   pixels.begin(); // NeoPixel init
   // Flash space is tight on Trinket/Gemma, so setBrightness() is avoided --
@@ -123,6 +133,34 @@ void loop(void) {
   }
   digitalWrite(CTS_PIN, HIGH); // BLE STOP!
 
+  // Check switch if ON state and wait for OFF..
+  if(digitalRead(SWITCH))
+  {
+
+    // tried a while(xx); loop here but it failed?
+    for (;;)
+    {
+      if(! digitalRead(SWITCH))
+      {
+        break;
+      }
+    }
+    
+    // Now we can switch states... 
+    pixels.clear(); // Clear pixel data when switching modes (else residue)
+    animMode += 1;    
+    if ( (animMode == 3) || (animMode ==2) )
+    {
+      i = 0;
+    }
+      
+    if (animMode == 5)
+    {
+      animMode = 0;
+    }
+      
+  }
+
   // Show pixels calculated on *prior* pass; this ensures more uniform timing
   pixels.show();
 
@@ -145,7 +183,7 @@ void loop(void) {
       }
       animPos++;
       break;
-    case 5: // Sparkle mode
+    case 4: // Sparkle mode
       pixels.setPixelColor(animPos, 0);     // Erase old dot
       animPos = random(NUM_LEDS);           // Pick a new one
       pixels.setPixelColor(animPos, color_array[0]); // and light it
@@ -187,7 +225,7 @@ void loop(void) {
         }
       }
       break;
-    case 4: // Do nothing and show nothing turn off leds
+    case 5: // Do nothing and show nothing turn off leds
         break;                                 
   }
 }
@@ -214,7 +252,7 @@ void buttonPress(char c) {
     animMode = 0; // Switch to pinwheel mode
     break;
    case '2':
-    animMode = 5; // Switch to sparkle mode
+    animMode = 4; // Switch to sparkle mode
     break;
    case '3':
     i = 0;
@@ -228,7 +266,7 @@ void buttonPress(char c) {
     animMode = 1;
     break;
    case '6': // Down off 
-    animMode = 4;
+    animMode = 5;
     break;
    case '7': // Left
     break;
